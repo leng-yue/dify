@@ -23,7 +23,7 @@ from core.tools.tool_file_manager import ToolFileManager
 from core.tools.utils.tool_parameter_converter import ToolParameterConverter
 
 if TYPE_CHECKING:
-    from core.file.file_obj import FileVar
+    from core.file.file_obj import File
 
 
 class Tool(BaseModel, ABC):
@@ -292,7 +292,7 @@ class Tool(BaseModel, ABC):
                                  message=image,
                                  save_as=save_as)
 
-    def create_file_var_message(self, file_var: "FileVar") -> ToolInvokeMessage:
+    def create_file_var_message(self, file_var: "File") -> ToolInvokeMessage:
         return ToolInvokeMessage(type=ToolInvokeMessage.MessageType.FILE_VAR,
                                  message='',
                                  meta={

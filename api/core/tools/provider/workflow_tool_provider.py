@@ -1,6 +1,6 @@
 from typing import Optional
 
-from core.app.app_config.entities import VariableEntity, VariableEntityType
+from core.app.app_config.entities import VariableEntityType
 from core.app.apps.workflow.app_config_manager import WorkflowAppConfigManager
 from core.tools.entities.common_entities import I18nObject
 from core.tools.entities.tool_entities import (
@@ -89,7 +89,7 @@ class WorkflowToolProviderController(ToolProviderController):
         parameters = db_provider.parameter_configurations
         variables = WorkflowToolConfigurationUtils.get_workflow_graph_variables(graph)
 
-        def fetch_workflow_variable(variable_name: str) -> VariableEntity:
+        def fetch_workflow_variable(variable_name: str):
             return next(filter(lambda x: x.variable == variable_name, variables), None)
 
         user = db_provider.user
@@ -131,7 +131,6 @@ class WorkflowToolProviderController(ToolProviderController):
                         llm_description=parameter.description,
                         required=variable.required,
                         options=options,
-                        default=variable.default
                     )
                 )
             elif features.file_upload:

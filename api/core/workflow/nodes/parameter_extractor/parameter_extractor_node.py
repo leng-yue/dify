@@ -22,7 +22,7 @@ from core.prompt.advanced_prompt_transform import AdvancedPromptTransform
 from core.prompt.entities.advanced_prompt_entities import ChatModelMessage, CompletionModelPromptTemplate
 from core.prompt.simple_prompt_transform import ModelMode
 from core.prompt.utils.prompt_message_util import PromptMessageUtil
-from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.nodes.llm.entities import ModelConfig
 from core.workflow.nodes.llm.llm_node import LLMNode
@@ -37,6 +37,7 @@ from core.workflow.nodes.parameter_extractor.prompts import (
     FUNCTION_CALLING_EXTRACTOR_USER_TEMPLATE,
 )
 from core.workflow.utils.variable_template_parser import VariableTemplateParser
+from enums import NodeType
 from extensions.ext_database import db
 from models.workflow import WorkflowNodeExecutionStatus
 
@@ -97,7 +98,7 @@ class ParameterExtractorNode(LLMNode):
 
         if set(model_schema.features or []) & {ModelFeature.TOOL_CALL, ModelFeature.MULTI_TOOL_CALL} \
             and node_data.reasoning_mode == 'function_call':
-            # use function call 
+            # use function call
             prompt_messages, prompt_message_tools = self._generate_function_call_prompt(
                 node_data, query, self.graph_runtime_state.variable_pool, model_config, memory
             )
@@ -703,8 +704,8 @@ class ParameterExtractorNode(LLMNode):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, 
-        graph_config: Mapping[str, Any], 
+        cls,
+        graph_config: Mapping[str, Any],
         node_id: str,
         node_data: ParameterExtractorNodeData
     ) -> Mapping[str, Sequence[str]]:

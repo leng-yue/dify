@@ -27,15 +27,15 @@ from core.app.entities.task_entities import (
     WorkflowStartStreamResponse,
     WorkflowTaskState,
 )
-from core.file.file_obj import FileVar
+from core.file.file_obj import File
 from core.model_runtime.utils.encoders import jsonable_encoder
 from core.ops.entities.trace_entity import TraceTaskName
 from core.ops.ops_trace_manager import TraceQueueManager, TraceTask
 from core.tools.tool_manager import ToolManager
-from core.workflow.entities.node_entities import NodeType
 from core.workflow.enums import SystemVariableKey
 from core.workflow.nodes.tool.entities import ToolNodeData
 from core.workflow.workflow_entry import WorkflowEntry
+from enums import NodeType, WorkflowRunTriggeredFrom
 from extensions.ext_database import db
 from models.account import Account
 from models.model import EndUser
@@ -47,7 +47,6 @@ from models.workflow import (
     WorkflowNodeExecutionTriggeredFrom,
     WorkflowRun,
     WorkflowRunStatus,
-    WorkflowRunTriggeredFrom,
 )
 
 
@@ -409,9 +408,9 @@ class WorkflowCycleManage:
         return response
 
     def _workflow_node_finish_to_stream_response(
-        self, 
-        event: QueueNodeSucceededEvent | QueueNodeFailedEvent, 
-        task_id: str, 
+        self,
+        event: QueueNodeSucceededEvent | QueueNodeFailedEvent,
+        task_id: str,
         workflow_node_execution: WorkflowNodeExecution
     ) -> Optional[NodeFinishStreamResponse]:
         """
@@ -423,7 +422,7 @@ class WorkflowCycleManage:
         """
         if workflow_node_execution.node_type in [NodeType.ITERATION.value, NodeType.LOOP.value]:
             return None
-        
+
         return NodeFinishStreamResponse(
             task_id=task_id,
             workflow_run_id=workflow_node_execution.workflow_run_id,
@@ -450,7 +449,7 @@ class WorkflowCycleManage:
                 parent_parallel_start_node_id=event.parent_parallel_start_node_id,
             ),
         )
-    
+
     def _workflow_parallel_branch_start_to_stream_response(
             self,
             task_id: str,
@@ -476,7 +475,7 @@ class WorkflowCycleManage:
                 created_at=int(time.time()),
             )
         )
-    
+
     def _workflow_parallel_branch_finished_to_stream_response(
             self,
             task_id: str,
@@ -601,11 +600,11 @@ class WorkflowCycleManage:
         if not outputs_dict:
             return []
 
-        files = []
-        for output_var, output_value in outputs_dict.items():
-            file_vars = self._fetch_files_from_variable_value(output_value)
-            if file_vars:
-                files.extend(file_vars)
+        files = [self._fetch_files_from_variable_value(output_value) for output_value in outputs_dict.values()]
+        # Remove None
+        files = [file for file in files if file]
+        # Flatten list
+        files = [file for sublist in files for file in sublist]
 
         return files
 
@@ -641,9 +640,9 @@ class WorkflowCycleManage:
             return None
 
         if isinstance(value, dict):
-            if '__variant' in value and value['__variant'] == FileVar.__name__:
+            if '__variant' in value and value['__variant'] == File.__name__:
                 return value
-        elif isinstance(value, FileVar):
+        elif isinstance(value, File):
             return value.to_dict()
 
         return None

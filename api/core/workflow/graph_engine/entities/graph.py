@@ -4,12 +4,12 @@ from typing import Any, Optional, cast
 
 from pydantic import BaseModel, Field
 
-from core.workflow.entities.node_entities import NodeType
 from core.workflow.graph_engine.entities.run_condition import RunCondition
 from core.workflow.nodes.answer.answer_stream_generate_router import AnswerStreamGeneratorRouter
 from core.workflow.nodes.answer.entities import AnswerStreamGenerateRoute
 from core.workflow.nodes.end.end_stream_generate_router import EndStreamGeneratorRouter
 from core.workflow.nodes.end.entities import EndStreamParam
+from enums import NodeType
 
 
 class GraphEdge(BaseModel):
@@ -152,7 +152,7 @@ class Graph(BaseModel):
 
         if not root_node_id or root_node_id not in root_node_ids:
             raise ValueError(f"Root node id {root_node_id} not found in the graph")
-        
+
         # Check whether it is connected to the previous node
         cls._check_connected_to_previous_node(
             route=[root_node_id],
@@ -285,7 +285,7 @@ class Graph(BaseModel):
 
     @classmethod
     def _check_connected_to_previous_node(
-        cls, 
+        cls,
         route: list[str],
         edge_mapping: dict[str, list[GraphEdge]]
     ) -> None:

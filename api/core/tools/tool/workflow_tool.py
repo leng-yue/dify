@@ -3,7 +3,7 @@ import logging
 from copy import deepcopy
 from typing import Any, Optional, Union
 
-from core.file.file_obj import FileTransferMethod, FileVar
+from core.file.file_obj import File, FileTransferMethod
 from core.tools.entities.tool_entities import ToolInvokeMessage, ToolParameter, ToolProviderType
 from core.tools.tool.tool import Tool
 from extensions.ext_database import db
@@ -43,18 +43,18 @@ class WorkflowTool(Tool):
         workflow = self._get_workflow(app_id=self.workflow_app_id, version=self.version)
 
         # transform the tool parameters
-        tool_parameters, files = self._transform_args(tool_parameters)
+        tool_parameters, files = self._transform_args(tool_parameters=tool_parameters)
 
         from core.app.apps.workflow.app_generator import WorkflowAppGenerator
         generator = WorkflowAppGenerator()
         result = generator.generate(
-            app_model=app, 
-            workflow=workflow, 
-            user=self._get_user(user_id), 
+            app_model=app,
+            workflow=workflow,
+            user=self._get_user(user_id),
             args={
                 'inputs': tool_parameters,
                 'files': files
-            }, 
+            },
             invoke_from=self.runtime.invoke_from,
             stream=False,
             call_depth=self.workflow_call_depth + 1,
@@ -65,14 +65,14 @@ class WorkflowTool(Tool):
 
         if data.get('error'):
             raise Exception(data.get('error'))
-        
+
         result = []
 
         outputs = data.get('outputs', {})
         outputs, files = self._extract_files(outputs)
         for file in files:
             result.append(self.create_file_var_message(file))
-        
+
         result.append(self.create_text_message(json.dumps(outputs, ensure_ascii=False)))
         result.append(self.create_json_message(outputs))
 
@@ -110,19 +110,19 @@ class WorkflowTool(Tool):
             version=self.version,
             label=self.label
         )
-    
+
     def _get_workflow(self, app_id: str, version: str) -> Workflow:
         """
             get the workflow by app id and version
         """
         if not version:
             workflow = db.session.query(Workflow).filter(
-                Workflow.app_id == app_id, 
+                Workflow.app_id == app_id,
                 Workflow.version != 'draft'
             ).order_by(Workflow.created_at.desc()).first()
         else:
             workflow = db.session.query(Workflow).filter(
-                Workflow.app_id == app_id, 
+                Workflow.app_id == app_id,
                 Workflow.version == version
             ).first()
 
@@ -130,7 +130,7 @@ class WorkflowTool(Tool):
             raise ValueError('workflow not found or not published')
 
         return workflow
-    
+
     def _get_app(self, app_id: str) -> App:
         """
             get the app by app id
@@ -140,7 +140,7 @@ class WorkflowTool(Tool):
             raise ValueError('app not found')
 
         return app
-    
+
     def _transform_args(self, tool_parameters: dict) -> tuple[dict, list[dict]]:
         """
             transform the tool parameters
@@ -156,7 +156,7 @@ class WorkflowTool(Tool):
                 file = tool_parameters.get(parameter.name)
                 if file:
                     try:
-                        file_var_list = [FileVar(**f) for f in file]
+                        file_var_list = [File(**f) for f in file]
                         for file_var in file_var_list:
                             file_dict = {
                                 'transfer_method': file_var.transfer_method.value,
@@ -176,8 +176,8 @@ class WorkflowTool(Tool):
                 parameters_result[parameter.name] = tool_parameters.get(parameter.name)
 
         return parameters_result, files
-    
-    def _extract_files(self, outputs: dict) -> tuple[dict, list[FileVar]]:
+
+    def _extract_files(self, outputs: dict) -> tuple[dict, list[File]]:
         """
             extract files from the result
 
@@ -190,9 +190,9 @@ class WorkflowTool(Tool):
             if isinstance(value, list):
                 has_file = False
                 for item in value:
-                    if isinstance(item, dict) and item.get('__variant') == 'FileVar':
+                    if isinstance(item, dict) and item.get('__variant') == 'File':
                         try:
-                            files.append(FileVar(**item))
+                            files.append(File(**item))
                             has_file = True
                         except Exception as e:
                             pass

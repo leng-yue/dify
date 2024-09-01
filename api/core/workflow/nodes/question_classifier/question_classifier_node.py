@@ -15,7 +15,7 @@ from core.prompt.entities.advanced_prompt_entities import ChatModelMessage, Comp
 from core.prompt.simple_prompt_transform import ModelMode
 from core.prompt.utils.prompt_message_util import PromptMessageUtil
 from core.prompt.utils.prompt_template_parser import PromptTemplateParser
-from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.nodes.llm.llm_node import LLMNode, ModelInvokeCompleted
 from core.workflow.nodes.question_classifier.entities import QuestionClassifierNodeData
@@ -29,6 +29,7 @@ from core.workflow.nodes.question_classifier.template_prompts import (
     QUESTION_CLASSIFIER_USER_PROMPT_3,
 )
 from core.workflow.utils.variable_template_parser import VariableTemplateParser
+from enums import NodeType
 from libs.json_in_md_parser import parse_and_check_json_markdown
 from models.workflow import WorkflowNodeExecutionStatus
 
@@ -141,8 +142,8 @@ class QuestionClassifierNode(LLMNode):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, 
-        graph_config: Mapping[str, Any], 
+        cls,
+        graph_config: Mapping[str, Any],
         node_id: str,
         node_data: QuestionClassifierNodeData
     ) -> Mapping[str, Sequence[str]]:
@@ -164,7 +165,7 @@ class QuestionClassifierNode(LLMNode):
         variable_mapping = {
             node_id + '.' + key: value for key, value in variable_mapping.items()
         }
-        
+
         return variable_mapping
 
     @classmethod

@@ -1,7 +1,8 @@
+from collections.abc import Sequence
 from typing import Optional, Union
 
 from core.app.entities.app_invoke_entities import ModelConfigWithCredentialsEntity
-from core.file.file_obj import FileVar
+from core.file.file_obj import File
 from core.helper.code_executor.jinja2.jinja2_formatter import Jinja2Formatter
 from core.memory.token_buffer_memory import TokenBufferMemory
 from core.model_runtime.entities.message_entities import (
@@ -28,7 +29,7 @@ class AdvancedPromptTransform(PromptTransform):
     def get_prompt(self, prompt_template: Union[list[ChatModelMessage], CompletionModelPromptTemplate],
                    inputs: dict,
                    query: str,
-                   files: list[FileVar],
+                   files: Sequence[File],
                    context: Optional[str],
                    memory_config: Optional[MemoryConfig],
                    memory: Optional[TokenBufferMemory],
@@ -69,7 +70,7 @@ class AdvancedPromptTransform(PromptTransform):
                                               prompt_template: CompletionModelPromptTemplate,
                                               inputs: dict,
                                               query: Optional[str],
-                                              files: list[FileVar],
+                                              files: Sequence[File],
                                               context: Optional[str],
                                               memory_config: Optional[MemoryConfig],
                                               memory: Optional[TokenBufferMemory],
@@ -126,7 +127,7 @@ class AdvancedPromptTransform(PromptTransform):
                                         prompt_template: list[ChatModelMessage],
                                         inputs: dict,
                                         query: Optional[str],
-                                        files: list[FileVar],
+                                        files: Sequence[File],
                                         context: Optional[str],
                                         memory_config: Optional[MemoryConfig],
                                         memory: Optional[TokenBufferMemory],

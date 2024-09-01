@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any, Literal, Optional, Union
 
 from pydantic import BaseModel
@@ -33,6 +34,7 @@ class VisionConfig(BaseModel):
         """
         Configs.
         """
+        variable_selector: Sequence[str]
         detail: Literal['low', 'high']
 
     enabled: bool

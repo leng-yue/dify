@@ -5,7 +5,7 @@ from typing import Any, cast
 
 from configs import dify_config
 from core.model_runtime.utils.encoders import jsonable_encoder
-from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.graph_engine.entities.event import (
     BaseGraphEvent,
     BaseNodeEvent,
@@ -24,6 +24,7 @@ from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.event import RunCompletedEvent, RunEvent
 from core.workflow.nodes.iteration.entities import IterationNodeData
 from core.workflow.utils.condition.entities import Condition
+from enums import NodeType
 from models.workflow import WorkflowNodeExecutionStatus
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ class IterationNode(BaseNode):
         }
 
         graph_config = self.graph_config
-    
+
         if not self.node_data.start_node_id:
             raise ValueError(f'field start_node_id in iteration {self.node_id} not found')
 
@@ -189,7 +190,7 @@ class IterationNode(BaseNode):
 
                         # remove all nodes outputs from variable pool
                         for node_id in iteration_graph.node_ids:
-                            variable_pool.remove_node(node_id)
+                            variable_pool.remove([node_id])
 
                         # move to next iteration
                         current_index = variable_pool.get([self.node_id, 'index'])
@@ -291,7 +292,7 @@ class IterationNode(BaseNode):
                 },
                 error=str(e),
             )
-        
+
 
             yield RunCompletedEvent(
                 run_result=NodeRunResult(
@@ -303,11 +304,11 @@ class IterationNode(BaseNode):
             # remove iteration variable (item, index) from variable pool after iteration run completed
             variable_pool.remove([self.node_id, 'index'])
             variable_pool.remove([self.node_id, 'item'])
-    
+
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, 
-        graph_config: Mapping[str, Any], 
+        cls,
+        graph_config: Mapping[str, Any],
         node_id: str,
         node_data: IterationNodeData
     ) -> Mapping[str, Sequence[str]]:
@@ -330,7 +331,7 @@ class IterationNode(BaseNode):
 
         if not iteration_graph:
             raise ValueError('iteration graph not found')
-        
+
         for sub_node_id, sub_node_config in iteration_graph.node_id_config_mapping.items():
             if sub_node_config.get('data', {}).get('iteration_id') != node_id:
                 continue
@@ -345,9 +346,9 @@ class IterationNode(BaseNode):
                     continue
 
                 node_cls = cast(BaseNode, node_cls)
-                
+
                 sub_node_variable_mapping = node_cls.extract_variable_selector_to_variable_mapping(
-                    graph_config=graph_config, 
+                    graph_config=graph_config,
                     config=sub_node_config
                 )
                 sub_node_variable_mapping = cast(dict[str, list[str]], sub_node_variable_mapping)
@@ -367,5 +368,5 @@ class IterationNode(BaseNode):
             key: value for key, value in variable_mapping.items()
             if value[0] not in iteration_graph.node_ids
         }
-        
+
         return variable_mapping

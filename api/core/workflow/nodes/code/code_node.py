@@ -6,9 +6,10 @@ from core.helper.code_executor.code_executor import CodeExecutionException, Code
 from core.helper.code_executor.code_node_provider import CodeNodeProvider
 from core.helper.code_executor.javascript.javascript_code_provider import JavascriptCodeProvider
 from core.helper.code_executor.python3.python3_code_provider import Python3CodeProvider
-from core.workflow.entities.node_entities import NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.code.entities import CodeNodeData
+from enums import NodeType
 from models.workflow import WorkflowNodeExecutionStatus
 
 
@@ -87,7 +88,7 @@ class CodeNode(BaseNode):
                 return None
             else:
                 raise ValueError(f"Output variable `{variable}` must be a string")
-        
+
         if len(value) > dify_config.CODE_MAX_STRING_LENGTH:
             raise ValueError(f'The length of output variable `{variable}` must be'
                              f' less than {dify_config.CODE_MAX_STRING_LENGTH} characters')
@@ -182,7 +183,7 @@ class CodeNode(BaseNode):
                     pass
                 else:
                     raise ValueError(f'Output {prefix}.{output_name} is not a valid type.')
-                
+
             return result
 
         parameters_validated = {}
@@ -190,7 +191,7 @@ class CodeNode(BaseNode):
             dot = '.' if prefix else ''
             if output_name not in result:
                 raise ValueError(f'Output {prefix}{dot}{output_name} is missing.')
-            
+
             if output_config.type == 'object':
                 # check if output is object
                 if not isinstance(result.get(output_name), dict):
@@ -280,7 +281,7 @@ class CodeNode(BaseNode):
                             f'The length of output variable `{prefix}{dot}{output_name}` must be'
                             f' less than {dify_config.CODE_MAX_OBJECT_ARRAY_LENGTH} elements.'
                         )
-                    
+
                     for i, value in enumerate(result[output_name]):
                         if not isinstance(value, dict):
                             if isinstance(value, type(None)):
@@ -301,7 +302,7 @@ class CodeNode(BaseNode):
                     ]
             else:
                 raise ValueError(f'Output type {output_config.type} is not supported.')
-            
+
             parameters_validated[output_name] = True
 
         # check if all output parameters are validated

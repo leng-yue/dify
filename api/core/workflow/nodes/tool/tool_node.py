@@ -2,20 +2,21 @@ from collections.abc import Mapping, Sequence
 from os import path
 from typing import Any, cast
 
-from core.app.segments import ArrayAnySegment, ArrayAnyVariable, parser
 from core.callback_handler.workflow_tool_callback_handler import DifyWorkflowCallbackHandler
-from core.file.file_obj import FileTransferMethod, FileType, FileVar
+from core.file.file_obj import File, FileTransferMethod, FileType
 from core.tools.entities.tool_entities import ToolInvokeMessage, ToolParameter
 from core.tools.tool_engine import ToolEngine
 from core.tools.tool_manager import ToolManager
 from core.tools.utils.message_transformer import ToolFileMessageTransformer
-from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult, NodeType
+from core.variables import ArrayFileSegment, parser
+from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.enums import SystemVariableKey
 from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.tool.entities import ToolNodeData
 from core.workflow.utils.variable_template_parser import VariableTemplateParser
-from models import WorkflowNodeExecutionStatus
+from enums import NodeType
+from models.workflow import WorkflowNodeExecutionStatus
 
 
 class ToolNode(BaseNode):
@@ -141,13 +142,13 @@ class ToolNode(BaseNode):
 
         return result
 
-    def _fetch_files(self, variable_pool: VariablePool) -> list[FileVar]:
+    def _fetch_files(self, variable_pool: VariablePool) -> list[File]:
         variable = variable_pool.get(['sys', SystemVariableKey.FILES.value])
-        assert isinstance(variable, ArrayAnyVariable | ArrayAnySegment)
+        assert isinstance(variable, ArrayFileSegment)
         return list(variable.value) if variable else []
 
     def _convert_tool_messages(self, messages: list[ToolInvokeMessage])\
-            -> tuple[str, list[FileVar], list[dict]]:
+            -> tuple[str, list[File], list[dict]]:
         """
         Convert ToolInvokeMessages into tuple[plain_text, files]
         """
@@ -165,7 +166,7 @@ class ToolNode(BaseNode):
 
         return plain_text, files, json
 
-    def _extract_tool_response_binary(self, tool_response: list[ToolInvokeMessage]) -> list[FileVar]:
+    def _extract_tool_response_binary(self, tool_response: list[ToolInvokeMessage]) -> list[File]:
         """
         Extract tool response binary
         """
@@ -182,7 +183,7 @@ class ToolNode(BaseNode):
 
                 # get tool file id
                 tool_file_id = url.split('/')[-1].split('.')[0]
-                result.append(FileVar(
+                result.append(File(
                     tenant_id=self.tenant_id,
                     type=FileType.IMAGE,
                     transfer_method=transfer_method,
@@ -195,7 +196,7 @@ class ToolNode(BaseNode):
             elif response.type == ToolInvokeMessage.MessageType.BLOB:
                 # get tool file id
                 tool_file_id = response.message.split('/')[-1].split('.')[0]
-                result.append(FileVar(
+                result.append(File(
                     tenant_id=self.tenant_id,
                     type=FileType.IMAGE,
                     transfer_method=FileTransferMethod.TOOL_FILE,
@@ -224,8 +225,8 @@ class ToolNode(BaseNode):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, 
-        graph_config: Mapping[str, Any], 
+        cls,
+        graph_config: Mapping[str, Any],
         node_id: str,
         node_data: ToolNodeData
     ) -> Mapping[str, Sequence[str]]:

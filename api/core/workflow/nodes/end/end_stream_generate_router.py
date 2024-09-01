@@ -1,5 +1,5 @@
-from core.workflow.entities.node_entities import NodeType
 from core.workflow.nodes.end.entities import EndNodeData, EndStreamParam
+from enums import NodeType
 
 
 class EndStreamGeneratorRouter:
@@ -64,7 +64,7 @@ class EndStreamGeneratorRouter:
                 node_type = node.get('data', {}).get('type')
                 if (
                     variable_selector.value_selector not in value_selectors
-                    and node_type == NodeType.LLM.value 
+                    and node_type == NodeType.LLM.value
                     and variable_selector.value_selector[1] == 'text'
                 ):
                     value_selectors.append(variable_selector.value_selector)

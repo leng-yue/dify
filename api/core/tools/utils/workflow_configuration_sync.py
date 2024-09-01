@@ -26,10 +26,10 @@ class WorkflowToolConfigurationUtils:
         return [
             VariableEntity(**variable) for variable in start_node.get('data', {}).get('variables', [])
         ]
-    
+
     @classmethod
-    def check_is_synced(cls, 
-                        variables: list[VariableEntity], 
+    def check_is_synced(cls,
+                        variables: list[VariableEntity],
                         tool_configurations: list[WorkflowToolParameterConfiguration]) -> None:
         """
         check is synced
@@ -40,7 +40,7 @@ class WorkflowToolConfigurationUtils:
 
         if len(tool_configurations) != len(variables):
             raise ValueError('parameter configuration mismatch, please republish the tool to update')
-        
+
         for parameter in tool_configurations:
             if parameter.name not in variable_names:
                 raise ValueError('parameter configuration mismatch, please republish the tool to update')

@@ -1,10 +1,11 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
-from core.workflow.entities.node_entities import NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.if_else.entities import IfElseNodeData
 from core.workflow.utils.condition.processor import ConditionProcessor
+from enums import NodeType
 from models.workflow import WorkflowNodeExecutionStatus
 
 
@@ -100,8 +101,8 @@ class IfElseNode(BaseNode):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, 
-        graph_config: Mapping[str, Any], 
+        cls,
+        graph_config: Mapping[str, Any],
         node_id: str,
         node_data: IfElseNodeData
     ) -> Mapping[str, Sequence[str]]:

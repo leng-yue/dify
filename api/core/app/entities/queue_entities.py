@@ -6,8 +6,9 @@ from pydantic import BaseModel, field_validator
 
 from core.model_runtime.entities.llm_entities import LLMResult, LLMResultChunk
 from core.workflow.entities.base_node_data_entities import BaseNodeData
-from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeType
+from core.workflow.entities.node_entities import NodeRunMetadataKey
 from core.workflow.graph_engine.entities.graph_runtime_state import GraphRuntimeState
+from enums import NodeType
 
 
 class QueueEvent(str, Enum):
@@ -134,7 +135,7 @@ class QueueIterationCompletedEvent(AppQueueEvent):
     parent_parallel_start_node_id: Optional[str] = None
     """parent parallel start node id if node is in parallel"""
     start_at: datetime
-    
+
     node_run_index: int
     inputs: Optional[dict[str, Any]] = None
     outputs: Optional[dict[str, Any]] = None
@@ -161,7 +162,7 @@ class QueueAgentMessageEvent(AppQueueEvent):
     event: QueueEvent = QueueEvent.AGENT_MESSAGE
     chunk: LLMResultChunk
 
-    
+
 class QueueMessageReplaceEvent(AppQueueEvent):
     """
     QueueMessageReplaceEvent entity

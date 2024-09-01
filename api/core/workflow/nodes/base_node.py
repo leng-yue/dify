@@ -3,12 +3,13 @@ from collections.abc import Generator, Mapping, Sequence
 from typing import Any, Optional
 
 from core.workflow.entities.base_node_data_entities import BaseNodeData
-from core.workflow.entities.node_entities import NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.graph_engine.entities.event import InNodeEvent
 from core.workflow.graph_engine.entities.graph import Graph
 from core.workflow.graph_engine.entities.graph_init_params import GraphInitParams
 from core.workflow.graph_engine.entities.graph_runtime_state import GraphRuntimeState
 from core.workflow.nodes.event import RunCompletedEvent, RunEvent
+from enums import NodeType
 
 
 class BaseNode(ABC):
@@ -89,8 +90,8 @@ class BaseNode(ABC):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, 
-        graph_config: Mapping[str, Any], 
+        cls,
+        graph_config: Mapping[str, Any],
         node_id: str,
         node_data: BaseNodeData
     ) -> Mapping[str, Sequence[str]]:

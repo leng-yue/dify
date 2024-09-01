@@ -20,7 +20,6 @@ from core.app.entities.queue_entities import (
     QueueWorkflowStartedEvent,
     QueueWorkflowSucceededEvent,
 )
-from core.workflow.entities.node_entities import NodeType
 from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.graph_engine.entities.event import (
     GraphEngineEvent,
@@ -45,6 +44,7 @@ from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.iteration.entities import IterationNodeData
 from core.workflow.nodes.node_mapping import node_classes
 from core.workflow.workflow_entry import WorkflowEntry
+from enums import NodeType
 from extensions.ext_database import db
 from models.model import App
 from models.workflow import Workflow
@@ -73,11 +73,11 @@ class WorkflowBasedAppRunner(AppRunner):
 
         if not graph:
             raise ValueError('graph not found in workflow')
-        
+
         return graph
 
     def _get_graph_and_variable_pool_of_single_iteration(
-            self, 
+            self,
             workflow: Workflow,
             node_id: str,
             user_inputs: dict,
@@ -89,7 +89,7 @@ class WorkflowBasedAppRunner(AppRunner):
         graph_config = workflow.graph_dict
         if not graph_config:
             raise ValueError('workflow graph not found')
-        
+
         graph_config = cast(dict[str, Any], graph_config)
 
         if 'nodes' not in graph_config or 'edges' not in graph_config:
@@ -103,7 +103,7 @@ class WorkflowBasedAppRunner(AppRunner):
 
         # filter nodes only in iteration
         node_configs = [
-            node for node in graph_config.get('nodes', []) 
+            node for node in graph_config.get('nodes', [])
             if node.get('id') == node_id or node.get('data', {}).get('iteration_id', '') == node_id
         ]
 
@@ -113,9 +113,9 @@ class WorkflowBasedAppRunner(AppRunner):
 
         # filter edges only in iteration
         edge_configs = [
-            edge for edge in graph_config.get('edges', []) 
-            if (edge.get('source') is None or edge.get('source') in node_ids) 
-            and (edge.get('target') is None or edge.get('target') in node_ids) 
+            edge for edge in graph_config.get('edges', [])
+            if (edge.get('source') is None or edge.get('source') in node_ids)
+            and (edge.get('target') is None or edge.get('target') in node_ids)
         ]
 
         graph_config['edges'] = edge_configs
@@ -128,7 +128,7 @@ class WorkflowBasedAppRunner(AppRunner):
 
         if not graph:
             raise ValueError('graph not found in workflow')
-        
+
         # fetch node config from node id
         iteration_node_config = None
         for node in node_configs:
@@ -138,7 +138,7 @@ class WorkflowBasedAppRunner(AppRunner):
 
         if not iteration_node_config:
             raise ValueError('iteration node id not found in workflow graph')
-        
+
         # Get node class
         node_type = NodeType.value_of(iteration_node_config.get('data', {}).get('type'))
         node_cls = node_classes.get(node_type)
@@ -153,7 +153,7 @@ class WorkflowBasedAppRunner(AppRunner):
 
         try:
             variable_mapping = node_cls.extract_variable_selector_to_variable_mapping(
-                graph_config=workflow.graph_dict, 
+                graph_config=workflow.graph_dict,
                 config=iteration_node_config
             )
         except NotImplementedError:
@@ -366,7 +366,7 @@ class WorkflowBasedAppRunner(AppRunner):
 
         # return workflow
         return workflow
-    
+
     def _publish_event(self, event: AppQueueEvent) -> None:
         self.queue_manager.publish(
             event,

@@ -2,14 +2,15 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from typing_extensions import deprecated
 
-from core.app.segments import Segment, Variable, factory
-from core.file.file_obj import FileVar
+from core.file import File
+from core.variables import Segment, Variable
 from core.workflow.enums import SystemVariableKey
+from factories import variable_factory
 
-VariableValue = Union[str, int, float, dict, list, FileVar]
+VariableValue = Union[str, int, float, dict, list, File]
 
 
 SYSTEM_VARIABLE_NODE_ID = "sys"
@@ -23,33 +24,24 @@ class VariablePool(BaseModel):
     # Other elements of the selector are the keys in the second-level dictionary. To get the key, we hash the
     # elements of the selector except the first one.
     variable_dictionary: dict[str, dict[int, Segment]] = Field(
-        description='Variables mapping',
-        default=defaultdict(dict)
+        description="Variables mapping", default=defaultdict(dict)
     )
 
     # TODO: This user inputs is not used for pool.
     user_inputs: Mapping[str, Any] = Field(
-        description='User inputs',
+        description="User inputs",
     )
 
     system_variables: Mapping[SystemVariableKey, Any] = Field(
-        description='System variables',
+        description="System variables",
     )
 
-    environment_variables: Sequence[Variable] = Field(
-        description="Environment variables.",
-        default_factory=list
-    )
+    environment_variables: Sequence[Variable] = Field(description="Environment variables.", default_factory=list)
 
     conversation_variables: Sequence[Variable] | None = None
 
-    @model_validator(mode="after")
-    def val_model_after(self):
-        """
-        Append system variables
-        :return:
-        """
-        # Add system variables to the variable pool
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         for key, value in self.system_variables.items():
             self.add((SYSTEM_VARIABLE_NODE_ID, key.value), value)
 
@@ -60,8 +52,6 @@ class VariablePool(BaseModel):
         # Add conversation variables to the variable pool
         for var in self.conversation_variables or []:
             self.add((CONVERSATION_VARIABLE_NODE_ID, var.name), var)
-
-        return self
 
     def add(self, selector: Sequence[str], value: Any, /) -> None:
         """
@@ -86,7 +76,7 @@ class VariablePool(BaseModel):
         if isinstance(value, Segment):
             v = value
         else:
-            v = factory.build_segment(value)
+            v = variable_factory.build_segment(value)
 
         hash_key = hash(tuple(selector[1:]))
         self.variable_dictionary[selector[0]][hash_key] = v
@@ -148,15 +138,3 @@ class VariablePool(BaseModel):
             return
         hash_key = hash(tuple(selector[1:]))
         self.variable_dictionary[selector[0]].pop(hash_key, None)
-
-    def remove_node(self, node_id: str, /):
-        """
-        Remove all variables associated with a given node id.
-
-        Args:
-            node_id (str): The node id to remove.
-
-        Returns:
-            None
-        """
-        self.variable_dictionary.pop(node_id, None)

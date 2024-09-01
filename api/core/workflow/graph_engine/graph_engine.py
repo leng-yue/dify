@@ -10,11 +10,7 @@ from flask import Flask, current_app
 
 from core.app.apps.base_app_queue_manager import GenerateTaskStoppedException
 from core.app.entities.app_invoke_entities import InvokeFrom
-from core.workflow.entities.node_entities import (
-    NodeRunMetadataKey,
-    NodeType,
-    UserFrom,
-)
+from core.workflow.entities.node_entities import NodeRunMetadataKey
 from core.workflow.entities.variable_pool import VariablePool, VariableValue
 from core.workflow.graph_engine.condition_handlers.condition_manager import ConditionManager
 from core.workflow.graph_engine.entities.event import (
@@ -41,6 +37,7 @@ from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.end.end_stream_processor import EndStreamProcessor
 from core.workflow.nodes.event import RunCompletedEvent, RunRetrieverResourceEvent, RunStreamChunkEvent
 from core.workflow.nodes.node_mapping import node_classes
+from enums import NodeType, UserFrom
 from extensions.ext_database import db
 from models.workflow import WorkflowNodeExecutionStatus, WorkflowType
 
@@ -57,9 +54,9 @@ class GraphEngineThreadPool(ThreadPoolExecutor):
     def submit(self, fn, *args, **kwargs):
         self.submit_count += 1
         self.check_is_full()
-        
+
         return super().submit(fn, *args, **kwargs)
-    
+
     def check_is_full(self) -> None:
         print(f"submit_count: {self.submit_count}, max_submit_count: {self.max_submit_count}")
         if self.submit_count > self.max_submit_count:
@@ -93,7 +90,7 @@ class GraphEngine:
         if thread_pool_id:
             if not thread_pool_id in GraphEngine.workflow_thread_pool_mapping:
                 raise ValueError(f"Max submit count {thread_pool_max_submit_count} of workflow thread pool reached.")
-            
+
             self.thread_pool_id = thread_pool_id
             self.thread_pool = GraphEngine.workflow_thread_pool_mapping[thread_pool_id]
             self.is_main_thread_pool = False
@@ -165,7 +162,7 @@ class GraphEngine:
                                                                if item.route_node_state.node_run_result
                                                                   and item.route_node_state.node_run_result.outputs
                                                                else "")
-                        
+
                             self.graph_runtime_state.outputs["answer"] = self.graph_runtime_state.outputs["answer"].strip()
                 except Exception as e:
                     logger.exception(f"Graph run failed: {str(e)}")
@@ -186,8 +183,8 @@ class GraphEngine:
                 del GraphEngine.workflow_thread_pool_mapping[self.thread_pool_id]
 
     def _run(
-            self, 
-            start_node_id: str, 
+            self,
+            start_node_id: str,
             in_parallel_id: Optional[str] = None,
             parent_parallel_id: Optional[str] = None,
             parent_parallel_start_node_id: Optional[str] = None
@@ -343,7 +340,7 @@ class GraphEngine:
 
                         if not result:
                             continue
-                        
+
                         if len(sub_edge_mappings) == 1:
                             final_node_id = edge.target_node_id
                         else:
@@ -451,7 +448,7 @@ class GraphEngine:
                         raise GraphRunFailedError(event.error)
             except queue.Empty:
                 continue
-        
+
         # wait all threads
         wait(futures)
 

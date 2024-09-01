@@ -1,7 +1,6 @@
 from typing import Optional
 
 from core.app.app_config.features.file_upload.manager import FileUploadConfigManager
-from core.file.message_file_parser import MessageFileParser
 from core.model_manager import ModelInstance
 from core.model_runtime.entities.message_entities import (
     AssistantPromptMessage,
@@ -12,6 +11,7 @@ from core.model_runtime.entities.message_entities import (
     UserPromptMessage,
 )
 from extensions.ext_database import db
+from factories import file_factory
 from models.model import AppMode, Conversation, Message, MessageFile
 from models.workflow import WorkflowRun
 
@@ -50,10 +50,6 @@ class TokenBufferMemory:
         messages = query.limit(message_limit).all()
 
         messages = list(reversed(messages))
-        message_file_parser = MessageFileParser(
-            tenant_id=app_record.tenant_id,
-            app_id=app_record.id
-        )
         prompt_messages = []
         for message in messages:
             files = db.session.query(MessageFile).filter(MessageFile.message_id == message.id).all()
@@ -72,10 +68,11 @@ class TokenBufferMemory:
                                 is_vision=False
                             )
 
-                if file_extra_config:
-                    file_objs = message_file_parser.transform_message_files(
-                        files,
-                        file_extra_config
+                if file_extra_config and app_record:
+                    file_objs = file_factory.build_from_message_files(
+                        message_files=files,
+                        tenant_id=app_record.tenant_id,
+                        config=file_extra_config
                     )
                 else:
                     file_objs = []

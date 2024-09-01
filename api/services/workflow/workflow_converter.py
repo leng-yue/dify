@@ -18,7 +18,7 @@ from core.helper import encrypter
 from core.model_runtime.entities.llm_entities import LLMMode
 from core.model_runtime.utils.encoders import jsonable_encoder
 from core.prompt.simple_prompt_transform import SimplePromptTransform
-from core.workflow.entities.node_entities import NodeType
+from enums import NodeType
 from events.app_event import app_was_created
 from extensions.ext_database import db
 from models.account import Account
@@ -522,7 +522,7 @@ class WorkflowConverter:
                 "vision": {
                     "enabled": file_upload is not None,
                     "variable_selector": ["sys", "files"] if file_upload is not None else None,
-                    "configs": {"detail": file_upload.image_config["detail"]}
+                    "configs": {"detail": file_upload.image_config.detail}
                     if file_upload is not None and file_upload.image_config is not None
                     else None,
                 },

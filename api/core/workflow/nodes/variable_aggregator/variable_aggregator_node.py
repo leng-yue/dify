@@ -1,9 +1,10 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
-from core.workflow.entities.node_entities import NodeRunResult, NodeType
+from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.variable_aggregator.entities import VariableAssignerNodeData
+from enums import NodeType
 from models.workflow import WorkflowNodeExecutionStatus
 
 
@@ -49,8 +50,8 @@ class VariableAggregatorNode(BaseNode):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, 
-        graph_config: Mapping[str, Any], 
+        cls,
+        graph_config: Mapping[str, Any],
         node_id: str,
         node_data: VariableAssignerNodeData
     ) -> Mapping[str, Sequence[str]]:

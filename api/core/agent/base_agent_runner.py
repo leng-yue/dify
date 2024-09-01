@@ -15,7 +15,6 @@ from core.app.entities.app_invoke_entities import (
 )
 from core.callback_handler.agent_tool_callback_handler import DifyAgentCallbackHandler
 from core.callback_handler.index_tool_callback_handler import DatasetIndexToolCallbackHandler
-from core.file.message_file_parser import MessageFileParser
 from core.memory.token_buffer_memory import TokenBufferMemory
 from core.model_manager import ModelInstance
 from core.model_runtime.entities.llm_entities import LLMUsage
@@ -40,6 +39,7 @@ from core.tools.tool.tool import Tool
 from core.tools.tool_manager import ToolManager
 from core.tools.utils.tool_parameter_converter import ToolParameterConverter
 from extensions.ext_database import db
+from factories import file_factory
 from models.model import Conversation, Message, MessageAgentThought
 from models.tools import ToolConversationVariables
 
@@ -144,7 +144,7 @@ class BaseAgentRunner(AppRunner):
             app_generate_entity.app_config.prompt_template.simple_prompt_template = ''
 
         return app_generate_entity
-    
+
     def _convert_tool_to_prompt_message_tool(self, tool: AgentToolEntity) -> tuple[PromptMessageTool, Tool]:
         """
             convert tool to prompt message tool
@@ -189,7 +189,7 @@ class BaseAgentRunner(AppRunner):
                 message_tool.parameters['required'].append(parameter.name)
 
         return message_tool, tool_entity
-    
+
     def _convert_dataset_retriever_tool_to_prompt_message_tool(self, tool: DatasetRetrieverTool) -> PromptMessageTool:
         """
         convert dataset retriever tool to prompt message tool
@@ -206,7 +206,7 @@ class BaseAgentRunner(AppRunner):
 
         for parameter in tool.get_runtime_parameters():
             parameter_type = 'string'
-        
+
             prompt_tool.parameters['properties'][parameter.name] = {
                 "type": parameter_type,
                 "description": parameter.llm_description or '',
@@ -217,7 +217,7 @@ class BaseAgentRunner(AppRunner):
                     prompt_tool.parameters['required'].append(parameter.name)
 
         return prompt_tool
-    
+
     def _init_prompt_tools(self) -> tuple[dict[str, Tool], list[PromptMessageTool]]:
         """
         Init tools
@@ -261,7 +261,7 @@ class BaseAgentRunner(AppRunner):
             enum = []
             if parameter.type == ToolParameter.ToolParameterType.SELECT:
                 enum = [option.value for option in parameter.options]
-        
+
             prompt_tool.parameters['properties'][parameter.name] = {
                 "type": parameter_type,
                 "description": parameter.llm_description or '',
@@ -275,8 +275,8 @@ class BaseAgentRunner(AppRunner):
                     prompt_tool.parameters['required'].append(parameter.name)
 
         return prompt_tool
-        
-    def create_agent_thought(self, message_id: str, message: str, 
+
+    def create_agent_thought(self, message_id: str, message: str,
                              tool_name: str, tool_input: str, messages_ids: list[str]
                              ) -> MessageAgentThought:
         """
@@ -318,12 +318,12 @@ class BaseAgentRunner(AppRunner):
 
         return thought
 
-    def save_agent_thought(self, 
-                           agent_thought: MessageAgentThought, 
+    def save_agent_thought(self,
+                           agent_thought: MessageAgentThought,
                            tool_name: str,
                            tool_input: Union[str, dict],
-                           thought: str, 
-                           observation: Union[str, dict], 
+                           thought: str,
+                           observation: Union[str, dict],
                            tool_invoke_meta: Union[str, dict],
                            answer: str,
                            messages_ids: list[str],
@@ -356,7 +356,7 @@ class BaseAgentRunner(AppRunner):
                     observation = json.dumps(observation, ensure_ascii=False)
                 except Exception as e:
                     observation = json.dumps(observation)
-                    
+
             agent_thought.observation = observation
 
         if answer is not None:
@@ -364,7 +364,7 @@ class BaseAgentRunner(AppRunner):
 
         if messages_ids is not None and len(messages_ids) > 0:
             agent_thought.message_files = json.dumps(messages_ids)
-        
+
         if llm_usage:
             agent_thought.message_token = llm_usage.prompt_tokens
             agent_thought.message_price_unit = llm_usage.prompt_price_unit
@@ -401,7 +401,7 @@ class BaseAgentRunner(AppRunner):
 
         db.session.commit()
         db.session.close()
-    
+
     def update_db_variables(self, tool_variables: ToolRuntimeVariablePool, db_variables: ToolConversationVariables):
         """
         convert tool variables to db variables
@@ -486,19 +486,15 @@ class BaseAgentRunner(AppRunner):
         return result
 
     def organize_agent_user_prompt(self, message: Message) -> UserPromptMessage:
-        message_file_parser = MessageFileParser(
-            tenant_id=self.tenant_id,
-            app_id=self.app_config.app_id,
-        )
-
         files = message.message_files
         if files:
             file_extra_config = FileUploadConfigManager.convert(message.app_model_config.to_dict())
 
             if file_extra_config:
-                file_objs = message_file_parser.transform_message_files(
-                    files,
-                    file_extra_config
+                file_objs = file_factory.build_from_message_files(
+                    message_files=files,
+                    tenant_id=self.tenant_id,
+                    config=file_extra_config
                 )
             else:
                 file_objs = []

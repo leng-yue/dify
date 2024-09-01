@@ -179,6 +179,16 @@ class FileUploadConfig(BaseSettings):
         default=10,
     )
 
+    UPLOAD_VIDEO_FILE_SIZE_LIMIT: NonNegativeInt = Field(
+        description="video file size limit in Megabytes for uploading files",
+        default=100,
+    )
+
+    UPLOAD_AUDIO_FILE_SIZE_LIMIT: NonNegativeInt = Field(
+        description="audio file size limit in Megabytes for uploading files",
+        default=50,
+    )
+
     BATCH_UPLOAD_LIMIT: NonNegativeInt = Field(
         description="",  # todo: to be clarified
         default=20,
@@ -470,6 +480,7 @@ class RagEtlConfig(BaseSettings):
     RAG ETL Configurations.
     """
 
+    # TODO: This config is not only for rag etl, it is also for file upload, we should move it to file upload config
     ETL_TYPE: str = Field(
         description="RAG ETL type name, default to `dify`, available values are `dify` and `Unstructured`. ",
         default="dify",
