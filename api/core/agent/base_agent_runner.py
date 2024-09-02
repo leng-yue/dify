@@ -37,7 +37,6 @@ from core.tools.entities.tool_entities import (
 from core.tools.tool.dataset_retriever_tool import DatasetRetrieverTool
 from core.tools.tool.tool import Tool
 from core.tools.tool_manager import ToolManager
-from core.tools.utils.tool_parameter_converter import ToolParameterConverter
 from extensions.ext_database import db
 from factories import file_factory
 from models.model import Conversation, Message, MessageAgentThought
@@ -172,7 +171,7 @@ class BaseAgentRunner(AppRunner):
             if parameter.form != ToolParameter.ToolParameterForm.LLM:
                 continue
 
-            parameter_type = ToolParameterConverter.get_parameter_type(parameter.type)
+            parameter_type = parameter.type.as_normal_type()
             enum = []
             if parameter.type == ToolParameter.ToolParameterType.SELECT:
                 enum = [option.value for option in parameter.options]
@@ -257,7 +256,7 @@ class BaseAgentRunner(AppRunner):
             if parameter.form != ToolParameter.ToolParameterForm.LLM:
                 continue
 
-            parameter_type = ToolParameterConverter.get_parameter_type(parameter.type)
+            parameter_type = parameter.type.as_normal_type()
             enum = []
             if parameter.type == ToolParameter.ToolParameterType.SELECT:
                 enum = [option.value for option in parameter.options]

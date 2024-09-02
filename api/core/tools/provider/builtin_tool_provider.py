@@ -13,7 +13,6 @@ from core.tools.errors import (
 from core.tools.provider.tool_provider import ToolProviderController
 from core.tools.tool.builtin_tool import BuiltinTool
 from core.tools.tool.tool import Tool
-from core.tools.utils.tool_parameter_converter import ToolParameterConverter
 from core.tools.utils.yaml_utils import load_yaml_file
 
 
@@ -22,7 +21,7 @@ class BuiltinToolProviderController(ToolProviderController):
         if self.provider_type == ToolProviderType.API or self.provider_type == ToolProviderType.APP:
             super().__init__(**data)
             return
-        
+
         # load provider yaml
         provider = self.__class__.__module__.split('.')[-1]
         yaml_path = path.join(path.dirname(path.realpath(__file__)), 'builtin', provider, f'{provider}.yaml')
@@ -49,7 +48,7 @@ class BuiltinToolProviderController(ToolProviderController):
         """
         if self.tools:
             return self.tools
-        
+
         provider = self.identity.name
         tool_path = path.join(path.dirname(path.realpath(__file__)), "builtin", provider, "tools")
         # get all the yaml files in the tool path
@@ -71,7 +70,7 @@ class BuiltinToolProviderController(ToolProviderController):
 
         self.tools = tools
         return tools
-    
+
     def get_credentials_schema(self) -> dict[str, ToolProviderCredentials]:
         """
             returns the credentials schema of the provider
@@ -80,7 +79,7 @@ class BuiltinToolProviderController(ToolProviderController):
         """
         if not self.credentials_schema:
             return {}
-        
+
         return self.credentials_schema.copy()
 
     def get_tools(self) -> list[Tool]:
@@ -90,7 +89,7 @@ class BuiltinToolProviderController(ToolProviderController):
             :return: list of tools
         """
         return self._get_builtin_tools()
-    
+
     def get_tool(self, tool_name: str) -> Tool:
         """
             returns the tool that the provider can provide
@@ -152,7 +151,7 @@ class BuiltinToolProviderController(ToolProviderController):
             :param tool_parameters: the parameters of the tool
         """
         tool_parameters_schema = self.get_parameters(tool_name)
-        
+
         tool_parameters_need_to_validate: dict[str, ToolParameter] = {}
         for parameter in tool_parameters_schema:
             tool_parameters_need_to_validate[parameter.name] = parameter
@@ -160,51 +159,50 @@ class BuiltinToolProviderController(ToolProviderController):
         for parameter in tool_parameters:
             if parameter not in tool_parameters_need_to_validate:
                 raise ToolParameterValidationError(f'parameter {parameter} not found in tool {tool_name}')
-            
+
             # check type
             parameter_schema = tool_parameters_need_to_validate[parameter]
             if parameter_schema.type == ToolParameter.ToolParameterType.STRING:
                 if not isinstance(tool_parameters[parameter], str):
                     raise ToolParameterValidationError(f'parameter {parameter} should be string')
-            
+
             elif parameter_schema.type == ToolParameter.ToolParameterType.NUMBER:
                 if not isinstance(tool_parameters[parameter], int | float):
                     raise ToolParameterValidationError(f'parameter {parameter} should be number')
-                
+
                 if parameter_schema.min is not None and tool_parameters[parameter] < parameter_schema.min:
                     raise ToolParameterValidationError(f'parameter {parameter} should be greater than {parameter_schema.min}')
-                
+
                 if parameter_schema.max is not None and tool_parameters[parameter] > parameter_schema.max:
                     raise ToolParameterValidationError(f'parameter {parameter} should be less than {parameter_schema.max}')
-                
+
             elif parameter_schema.type == ToolParameter.ToolParameterType.BOOLEAN:
                 if not isinstance(tool_parameters[parameter], bool):
                     raise ToolParameterValidationError(f'parameter {parameter} should be boolean')
-                
+
             elif parameter_schema.type == ToolParameter.ToolParameterType.SELECT:
                 if not isinstance(tool_parameters[parameter], str):
                     raise ToolParameterValidationError(f'parameter {parameter} should be string')
-                
+
                 options = parameter_schema.options
                 if not isinstance(options, list):
                     raise ToolParameterValidationError(f'parameter {parameter} options should be list')
-                
+
                 if tool_parameters[parameter] not in [x.value for x in options]:
                     raise ToolParameterValidationError(f'parameter {parameter} should be one of {options}')
-                
+
             tool_parameters_need_to_validate.pop(parameter)
 
         for parameter in tool_parameters_need_to_validate:
             parameter_schema = tool_parameters_need_to_validate[parameter]
             if parameter_schema.required:
                 raise ToolParameterValidationError(f'parameter {parameter} is required')
-            
+
             # the parameter is not set currently, set the default value if needed
             if parameter_schema.default is not None:
-                default_value = ToolParameterConverter.cast_parameter_by_type(parameter_schema.default,
-                                                                              parameter_schema.type)
+                default_value = parameter_schema.type.cast_value(parameter_schema.default)
                 tool_parameters[parameter] = default_value
-    
+
     def validate_credentials(self, credentials: dict[str, Any]) -> None:
         """
             validate the credentials of the provider

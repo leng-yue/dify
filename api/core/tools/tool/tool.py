@@ -20,7 +20,6 @@ from core.tools.entities.tool_entities import (
     ToolRuntimeVariablePool,
 )
 from core.tools.tool_file_manager import ToolFileManager
-from core.tools.utils.tool_parameter_converter import ToolParameterConverter
 
 if TYPE_CHECKING:
     from core.file.file_obj import File
@@ -220,7 +219,7 @@ class Tool(BaseModel, ABC):
         result = deepcopy(tool_parameters)
         for parameter in self.parameters or []:
             if parameter.name in tool_parameters:
-                result[parameter.name] = ToolParameterConverter.cast_parameter_by_type(tool_parameters[parameter.name], parameter.type)
+                result[parameter.name] = parameter.type.cast_value(tool_parameters[parameter.name])
 
         return result
 
