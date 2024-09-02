@@ -8,10 +8,8 @@ from core.tools.entities.tool_entities import ToolInvokeMessage, ToolParameter
 from core.tools.tool_engine import ToolEngine
 from core.tools.tool_manager import ToolManager
 from core.tools.utils.message_transformer import ToolFileMessageTransformer
-from core.variables import ArrayFileSegment
 from core.workflow.entities.node_entities import NodeRunMetadataKey, NodeRunResult
 from core.workflow.entities.variable_pool import VariablePool
-from core.workflow.enums import SystemVariableKey
 from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.tool.entities import ToolNodeData
 from core.workflow.utils.variable_template_parser import VariableTemplateParser
@@ -132,28 +130,20 @@ class ToolNode(BaseNode):
             if not parameter:
                 result[parameter_name] = None
                 continue
-            if parameter.type == ToolParameter.ToolParameterType.SYSTEM_FILES:
-                result[parameter_name] = [v.to_dict() for v in self._fetch_files(variable_pool)]
+            tool_input = node_data.tool_parameters[parameter_name]
+            if tool_input.type == "variable":
+                variable = variable_pool.get(tool_input.value)
+                if variable is None:
+                    raise ValueError(f"variable {tool_input.value} not exists")
+                parameter_value = variable.value
+            elif tool_input.type in ("mixed", "constant"):
+                segment_group = variable_pool.convert_template(str(tool_input.value))
+                parameter_value = segment_group.log if for_log else segment_group.text
             else:
-                tool_input = node_data.tool_parameters[parameter_name]
-                if tool_input.type == "variable":
-                    variable = variable_pool.get(tool_input.value)
-                    if variable is None:
-                        raise ValueError(f"variable {tool_input.value} not exists")
-                    parameter_value = variable.value
-                elif tool_input.type in ("mixed", "constant"):
-                    segment_group = variable_pool.convert_template(str(tool_input.value))
-                    parameter_value = segment_group.log if for_log else segment_group.text
-                else:
-                    raise ValueError(f"unknown tool input type '{tool_input.type}'")
-                result[parameter_name] = parameter_value
+                raise ValueError(f"unknown tool input type '{tool_input.type}'")
+            result[parameter_name] = parameter_value
 
         return result
-
-    def _fetch_files(self, variable_pool: VariablePool) -> list[File]:
-        variable = variable_pool.get(["sys", SystemVariableKey.FILES])
-        assert isinstance(variable, ArrayFileSegment)
-        return list(variable.value) if variable else []
 
     def _convert_tool_messages(
         self,
