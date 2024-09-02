@@ -145,7 +145,7 @@ class WorkflowToolProviderController(ToolProviderController):
                             en_US=parameter.description,
                             zh_Hans=parameter.description
                         ),
-                        type=ToolParameter.ToolParameterType.FILE,
+                        type=ToolParameter.ToolParameterType.SYSTEM_FILES,
                         llm_description=parameter.description,
                         required=False,
                         form=parameter.form,

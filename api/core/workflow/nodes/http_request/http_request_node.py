@@ -7,7 +7,6 @@ from typing import Any, cast
 from configs import dify_config
 from core.file import File, FileTransferMethod, FileType
 from core.tools.tool_file_manager import ToolFileManager
-from core.variables import parser
 from core.workflow.entities.node_entities import NodeRunResult
 from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.http_request.entities import (
@@ -50,12 +49,10 @@ class HttpRequestNode(BaseNode):
 
     def _run(self) -> NodeRunResult:
         node_data: HttpRequestNodeData = cast(HttpRequestNodeData, self.node_data)
-        # TODO: Switch to use segment directly
         if node_data.authorization.config and node_data.authorization.config.api_key:
-            node_data.authorization.config.api_key = parser.convert_template(
-                template=node_data.authorization.config.api_key,
-                variable_pool=self.graph_runtime_state.variable_pool
-                ).text
+            node_data.authorization.config.api_key = self.graph_runtime_state.variable_pool.convert_template(
+                node_data.authorization.config.api_key
+            ).text
 
         # init http executor
         http_executor = None

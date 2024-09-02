@@ -133,7 +133,9 @@ class ToolParameter(BaseModel):
         BOOLEAN = "boolean"
         SELECT = "select"
         SECRET_INPUT = "secret-input"
-        FILE = "file"
+        SYSTEM_FILES = "file"  # TODO: Change to 'system-files' or merge into 'file-list'.
+        FILE = "single-file"  # TODO: Change to 'file'.
+        FILE_LIST = "file-list"
 
     class ToolParameterForm(Enum):
         SCHEMA = "schema" # should be set while adding tool

@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, Union
@@ -6,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import deprecated
 
 from core.file import File
-from core.variables import Segment, Variable
+from core.variables import Segment, SegmentGroup, Variable
 from core.workflow.enums import SystemVariableKey
 from factories import variable_factory
 
@@ -16,6 +17,7 @@ VariableValue = Union[str, int, float, dict, list, File]
 SYSTEM_VARIABLE_NODE_ID = "sys"
 ENVIRONMENT_VARIABLE_NODE_ID = "env"
 CONVERSATION_VARIABLE_NODE_ID = "conversation"
+VARIABLE_PATTERN = re.compile(r"\{\{#([a-zA-Z0-9_]{1,50}(?:\.[a-zA-Z_][a-zA-Z0-9_]{0,29}){1,10})#\}\}")
 
 
 class VariablePool(BaseModel):
@@ -138,3 +140,13 @@ class VariablePool(BaseModel):
             return
         hash_key = hash(tuple(selector[1:]))
         self.variable_dictionary[selector[0]].pop(hash_key, None)
+
+    def convert_template(self, template: str, /):
+        parts = re.split(VARIABLE_PATTERN, template)
+        segments = []
+        for part in filter(lambda x: x, parts):
+            if "." in part and (value := self.get(part.split("."))):
+                segments.append(value)
+            else:
+                segments.append(variable_factory.build_segment(part))
+        return SegmentGroup(value=segments)

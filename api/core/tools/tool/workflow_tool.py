@@ -152,7 +152,7 @@ class WorkflowTool(Tool):
         parameters_result = {}
         files = []
         for parameter in parameter_rules:
-            if parameter.type == ToolParameter.ToolParameterType.FILE:
+            if parameter.type == ToolParameter.ToolParameterType.SYSTEM_FILES:
                 file = tool_parameters.get(parameter.name)
                 if file:
                     try:
