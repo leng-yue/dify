@@ -30,7 +30,7 @@ from core.workflow.enums import SystemVariableKey
 from core.workflow.graph_engine.entities.event import InNodeEvent
 from core.workflow.nodes.base_node import BaseNode
 from core.workflow.nodes.event import RunCompletedEvent, RunEvent, RunRetrieverResourceEvent, RunStreamChunkEvent
-from core.workflow.nodes.llm.entities import (
+from core.workflow.nodes.llm import (
     LLMNodeChatModelMessage,
     LLMNodeCompletionModelPromptTemplate,
     LLMNodeData,
