@@ -17,10 +17,11 @@ from core.callback_handler.agent_tool_callback_handler import DifyAgentCallbackH
 from core.callback_handler.index_tool_callback_handler import DatasetIndexToolCallbackHandler
 from core.memory.token_buffer_memory import TokenBufferMemory
 from core.model_manager import ModelInstance
-from core.model_runtime.entities.llm_entities import LLMUsage
-from core.model_runtime.entities.message_entities import (
+from core.model_runtime.entities import (
     AssistantPromptMessage,
+    LLMUsage,
     PromptMessage,
+    PromptMessageContent,
     PromptMessageTool,
     SystemPromptMessage,
     TextPromptMessageContent,
@@ -60,23 +61,6 @@ class BaseAgentRunner(AppRunner):
                  db_variables: Optional[ToolConversationVariables] = None,
                  model_instance: ModelInstance = None
                  ) -> None:
-        """
-        Agent runner
-        :param tenant_id: tenant id
-        :param application_generate_entity: application generate entity
-        :param conversation: conversation
-        :param app_config: app generate entity
-        :param model_config: model config
-        :param config: dataset config
-        :param queue_manager: queue manager
-        :param message: message
-        :param user_id: user id
-        :param memory: memory
-        :param prompt_messages: prompt messages
-        :param variables_pool: variables pool
-        :param db_variables: db variables
-        :param model_instance: model instance
-        """
         self.tenant_id = tenant_id
         self.application_generate_entity = application_generate_entity
         self.conversation = conversation
@@ -501,7 +485,8 @@ class BaseAgentRunner(AppRunner):
             if not file_objs:
                 return UserPromptMessage(content=message.query)
             else:
-                prompt_message_contents = [TextPromptMessageContent(data=message.query)]
+                prompt_message_contents: list[PromptMessageContent] = []
+                prompt_message_contents.append(TextPromptMessageContent(data=message.query))
                 for file_obj in file_objs:
                     prompt_message_contents.append(file_obj.prompt_message_content)
 

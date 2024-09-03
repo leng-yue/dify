@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -22,7 +22,7 @@ class ContextConfig(BaseModel):
 
 
 class VisionConfigOptions(BaseModel):
-    variable_selector: Sequence[str] = Field(default_factory=list)
+    variable_selector: Sequence[str] = Field(default_factory=lambda :["sys", "files"])
     detail: ImagePromptMessageContent.DETAIL = ImagePromptMessageContent.DETAIL.HIGH
 
 
@@ -45,7 +45,7 @@ class LLMNodeCompletionModelPromptTemplate(CompletionModelPromptTemplate):
 
 class LLMNodeData(BaseNodeData):
     model: ModelConfig
-    prompt_template: Union[list[LLMNodeChatModelMessage], LLMNodeCompletionModelPromptTemplate]
+    prompt_template: Sequence[LLMNodeChatModelMessage] | LLMNodeCompletionModelPromptTemplate
     prompt_config: Optional[PromptConfig] = None
     memory: Optional[MemoryConfig] = None
     context: ContextConfig

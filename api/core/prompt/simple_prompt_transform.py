@@ -8,6 +8,7 @@ from core.app.entities.app_invoke_entities import ModelConfigWithCredentialsEnti
 from core.memory.token_buffer_memory import TokenBufferMemory
 from core.model_runtime.entities.message_entities import (
     PromptMessage,
+    PromptMessageContent,
     SystemPromptMessage,
     TextPromptMessageContent,
     UserPromptMessage,
@@ -259,7 +260,8 @@ class SimplePromptTransform(PromptTransform):
 
     def get_last_user_message(self, prompt: str, files: list["File"]) -> UserPromptMessage:
         if files:
-            prompt_message_contents = [TextPromptMessageContent(data=prompt)]
+            prompt_message_contents: list[PromptMessageContent] = []
+            prompt_message_contents.append(TextPromptMessageContent(data=prompt))
             for file in files:
                 prompt_message_contents.append(file.prompt_message_content)
 

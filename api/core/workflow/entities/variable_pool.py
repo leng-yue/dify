@@ -59,6 +59,9 @@ class VariablePool(BaseModel):
         """
         Adds a variable to the variable pool.
 
+        NOTE: You should not add a non-Segment value to the variable pool
+        even if it is allowed now.
+
         Args:
             selector (Sequence[str]): The selector for the variable.
             value (VariableValue): The value of the variable.

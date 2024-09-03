@@ -125,12 +125,12 @@ class File(BaseModel):
     def prompt_message_content(self):
         if self.type == FileType.IMAGE:
             if self.extra_config is None:
-                return None
+                raise ValueError("Missing file extra config")
 
             image_config = self.extra_config.image_config
 
             if self.data is None:
-                return None
+                raise ValueError("Missing file data")
 
             return ImagePromptMessageContent(
                 data=self.data,
@@ -138,6 +138,7 @@ class File(BaseModel):
                 if image_config and image_config.detail
                 else ImagePromptMessageContent.DETAIL.LOW,
             )
+        raise ValueError("Only image file can convert to prompt message content")
 
     def _preview_url(self, force_url: bool = False) -> str | None:
         if self.type == FileType.IMAGE:

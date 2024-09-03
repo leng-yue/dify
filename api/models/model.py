@@ -660,7 +660,7 @@ class Message(db.Model):
     override_model_configs = db.Column(db.Text)
     conversation_id = db.Column(StringUUID, db.ForeignKey('conversations.id'), nullable=False)
     inputs = db.Column(db.JSON)
-    query = db.Column(db.Text, nullable=False)
+    query: Mapped[str] = db.Column(db.Text, nullable=False)
     message = db.Column(db.JSON, nullable=False)
     message_tokens = db.Column(db.Integer, nullable=False, server_default=db.text('0'))
     message_unit_price = db.Column(db.Numeric(10, 4), nullable=False)

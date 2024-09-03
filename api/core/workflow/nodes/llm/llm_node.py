@@ -62,10 +62,6 @@ class LLMNode(BaseNode):
     _node_type = NodeType.LLM
 
     def _run(self) -> Generator[RunEvent | InNodeEvent, None, None]:
-        """
-        Run node
-        :return:
-        """
         node_data = cast(LLMNodeData, deepcopy(self.node_data))
         variable_pool = self.graph_runtime_state.variable_pool
 
@@ -88,7 +84,12 @@ class LLMNode(BaseNode):
             node_inputs = {}
 
             # fetch files
-            files = self._fetch_files(node_data, variable_pool)
+            if node_data.vision.enabled:
+                files = self._fetch_files(
+                    variable_pool=variable_pool, selector=node_data.vision.configs.variable_selector
+                )
+            else:
+                files = []
 
             if files:
                 node_inputs["#files#"] = [file.to_dict() for file in files]
@@ -108,11 +109,12 @@ class LLMNode(BaseNode):
             model_instance, model_config = self._fetch_model_config(node_data.model)
 
             # fetch memory
-            memory = self._fetch_memory(node_data.memory, variable_pool, model_instance)
+            memory = self._fetch_memory(
+                node_data_memory=node_data.memory, variable_pool=variable_pool, model_instance=model_instance
+            )
 
             # fetch prompt messages
             prompt_messages, stop = self._fetch_prompt_messages(
-                node_data=node_data,
                 query=variable_pool.get_any(["sys", SystemVariableKey.QUERY.value]) if node_data.memory else None,
                 query_prompt_template=node_data.memory.query_prompt_template if node_data.memory else None,
                 inputs=inputs,
@@ -120,16 +122,18 @@ class LLMNode(BaseNode):
                 context=context,
                 memory=memory,
                 model_config=model_config,
+                vision_detail=node_data.vision.configs.detail,
+                prompt_template=node_data.prompt_template,
+                memory_config=node_data.memory,
             )
 
             process_data = {
-                'model_mode': model_config.mode,
-                'prompts': PromptMessageUtil.prompt_messages_to_prompt_for_saving(
-                    model_mode=model_config.mode,
-                    prompt_messages=prompt_messages
+                "model_mode": model_config.mode,
+                "prompts": PromptMessageUtil.prompt_messages_to_prompt_for_saving(
+                    model_mode=model_config.mode, prompt_messages=prompt_messages
                 ),
-                'model_provider': model_config.provider,
-                'model_name': model_config.model,
+                "model_provider": model_config.provider,
+                "model_name": model_config.model,
             }
 
             # handle invoke result
@@ -186,14 +190,6 @@ class LLMNode(BaseNode):
         prompt_messages: list[PromptMessage],
         stop: Optional[list[str]] = None,
     ) -> Generator[RunEvent | ModelInvokeCompleted, None, None]:
-        """
-        Invoke large language model
-        :param node_data_model: node data model
-        :param model_instance: model instance
-        :param prompt_messages: prompt messages
-        :param stop: stop
-        :return:
-        """
         db.session.close()
 
         invoke_result = model_instance.invoke_llm(
@@ -219,11 +215,6 @@ class LLMNode(BaseNode):
     def _handle_invoke_result(
         self, invoke_result: LLMResult | Generator
     ) -> Generator[RunEvent | ModelInvokeCompleted, None, None]:
-        """
-        Handle invoke result
-        :param invoke_result: invoke result
-        :return:
-        """
         if isinstance(invoke_result, LLMResult):
             return
 
@@ -256,15 +247,8 @@ class LLMNode(BaseNode):
         yield ModelInvokeCompleted(text=full_text, usage=usage, finish_reason=finish_reason)
 
     def _transform_chat_messages(
-        self, messages: list[LLMNodeChatModelMessage] | LLMNodeCompletionModelPromptTemplate
-    ) -> list[LLMNodeChatModelMessage] | LLMNodeCompletionModelPromptTemplate:
-        """
-        Transform chat messages
-
-        :param messages: chat messages
-        :return:
-        """
-
+        self, messages: Sequence[LLMNodeChatModelMessage] | LLMNodeCompletionModelPromptTemplate, /
+    ) -> Sequence[LLMNodeChatModelMessage] | LLMNodeCompletionModelPromptTemplate:
         if isinstance(messages, LLMNodeCompletionModelPromptTemplate):
             if messages.edition_type == "jinja2" and messages.jinja2_text:
                 messages.text = messages.jinja2_text
@@ -278,12 +262,6 @@ class LLMNode(BaseNode):
         return messages
 
     def _fetch_jinja_inputs(self, node_data: LLMNodeData, variable_pool: VariablePool) -> dict[str, str]:
-        """
-        Fetch jinja inputs
-        :param node_data: node data
-        :param variable_pool: variable pool
-        :return:
-        """
         variables = {}
 
         if not node_data.prompt_config:
@@ -334,12 +312,6 @@ class LLMNode(BaseNode):
         return variables
 
     def _fetch_inputs(self, node_data: LLMNodeData, variable_pool: VariablePool) -> dict[str, str]:
-        """
-        Fetch inputs
-        :param node_data: node data
-        :param variable_pool: variable pool
-        :return:
-        """
         inputs = {}
         prompt_template = node_data.prompt_template
 
@@ -373,32 +345,21 @@ class LLMNode(BaseNode):
 
         return inputs
 
-    def _fetch_files(self, node_data: LLMNodeData, variable_pool: VariablePool) -> Sequence["File"]:
-        """
-        Fetch files
-        :param node_data: node data
-        :param variable_pool: variable pool
-        :return:
-        """
-        if not node_data.vision.enabled:
-            return []
-
-        variable = variable_pool.get(node_data.vision.variable_selector)
+    def _fetch_files(self, *, variable_pool: VariablePool, selector: Sequence[str]) -> Sequence["File"]:
+        variable = variable_pool.get(selector)
         if variable is None:
             return []
         if isinstance(variable, FileSegment):
             return [variable.value]
         if isinstance(variable, ArrayFileSegment):
             return variable.value
+        # FIXME: Temporary fix for empty array,
+        # all variables added to variable pool should be a Segment instance.
+        if isinstance(variable, ArrayFileSegment) and len(variable.value) == 0:
+            return []
         raise ValueError(f"Invalid variable type: {type(variable)}")
 
     def _fetch_context(self, node_data: LLMNodeData, variable_pool: VariablePool) -> Generator[RunEvent, None, None]:
-        """
-        Fetch context
-        :param node_data: node data
-        :param variable_pool: variable pool
-        :return:
-        """
         if not node_data.context.enabled:
             return
 
@@ -430,11 +391,6 @@ class LLMNode(BaseNode):
                 )
 
     def _convert_to_original_retriever_resource(self, context_dict: dict) -> Optional[dict]:
-        """
-        Convert to original retriever resource, temp.
-        :param context_dict: context dict
-        :return:
-        """
         if (
             "metadata" in context_dict
             and "_source" in context_dict["metadata"]
@@ -465,11 +421,6 @@ class LLMNode(BaseNode):
     def _fetch_model_config(
         self, node_data_model: ModelConfig
     ) -> tuple[ModelInstance, ModelConfigWithCredentialsEntity]:
-        """
-        Fetch model config
-        :param node_data_model: node data model
-        :return:
-        """
         model_name = node_data_model.name
         provider_name = node_data_model.provider
 
@@ -530,12 +481,6 @@ class LLMNode(BaseNode):
     def _fetch_memory(
         self, node_data_memory: Optional[MemoryConfig], variable_pool: VariablePool, model_instance: ModelInstance
     ) -> Optional[TokenBufferMemory]:
-        """
-        Fetch memory
-        :param node_data_memory: node data memory
-        :param variable_pool: variable pool
-        :return:
-        """
         if not node_data_memory:
             return None
 
@@ -560,43 +505,33 @@ class LLMNode(BaseNode):
 
     def _fetch_prompt_messages(
         self,
-        node_data: LLMNodeData,
-        query: Optional[str],
-        query_prompt_template: Optional[str],
-        inputs: dict[str, str],
+        *,
+        query: str | None = None,
+        query_prompt_template: str | None = None,
+        inputs: dict[str, str] | None = None,
         files: Sequence["File"],
-        context: Optional[str],
-        memory: Optional[TokenBufferMemory],
+        context: str | None = None,
+        memory: TokenBufferMemory | None = None,
         model_config: ModelConfigWithCredentialsEntity,
+        prompt_template: Sequence[LLMNodeChatModelMessage] | LLMNodeCompletionModelPromptTemplate,
+        memory_config: MemoryConfig | None = None,
+        vision_detail: ImagePromptMessageContent.DETAIL,
     ) -> tuple[list[PromptMessage], Optional[list[str]]]:
-        """
-        Fetch prompt messages
-        :param node_data: node data
-        :param query: query
-        :param query_prompt_template: query prompt template
-        :param inputs: inputs
-        :param files: files
-        :param context: context
-        :param memory: memory
-        :param model_config: model config
-        :return:
-        """
+        inputs = inputs or {}
+
         prompt_transform = AdvancedPromptTransform(with_variable_tmpl=True)
         prompt_messages = prompt_transform.get_prompt(
-            prompt_template=node_data.prompt_template,
+            prompt_template=prompt_template,
             inputs=inputs,
             query=query if query else "",
             files=files,
             context=context,
-            memory_config=node_data.memory,
+            memory_config=memory_config,
             memory=memory,
             model_config=model_config,
             query_prompt_template=query_prompt_template,
         )
         stop = model_config.stop
-
-        vision_enabled = node_data.vision.enabled
-        vision_detail = node_data.vision.configs.detail if node_data.vision.configs else None
         filtered_prompt_messages = []
         for prompt_message in prompt_messages:
             if prompt_message.is_empty():
@@ -604,15 +539,11 @@ class LLMNode(BaseNode):
 
             if not isinstance(prompt_message.content, str):
                 prompt_message_content = []
-                for content_item in prompt_message.content:
-                    if (
-                        vision_enabled
-                        and content_item.type == PromptMessageContentType.IMAGE
-                        and isinstance(content_item, ImagePromptMessageContent)
-                    ):
-                        # Override vision config if LLM node has vision config
-                        if vision_detail:
-                            content_item.detail = ImagePromptMessageContent.DETAIL(vision_detail)
+                for content_item in prompt_message.content or []:
+                    if isinstance(content_item, ImagePromptMessageContent):
+                        # Override vision config if LLM node has vision config,
+                        # cuz vision detail is related to the configuration from FileUpload feature.
+                        content_item.detail = vision_detail
                         prompt_message_content.append(content_item)
                     elif content_item.type == PromptMessageContentType.TEXT:
                         prompt_message_content.append(content_item)
@@ -636,13 +567,6 @@ class LLMNode(BaseNode):
 
     @classmethod
     def deduct_llm_quota(cls, tenant_id: str, model_instance: ModelInstance, usage: LLMUsage) -> None:
-        """
-        Deduct LLM quota
-        :param tenant_id: tenant id
-        :param model_instance: model instance
-        :param usage: usage
-        :return:
-        """
         provider_model_bundle = model_instance.provider_model_bundle
         provider_configuration = provider_model_bundle.configuration
 
@@ -673,7 +597,7 @@ class LLMNode(BaseNode):
             else:
                 used_quota = 1
 
-        if used_quota is not None:
+        if used_quota is not None and system_configuration.current_quota_type is not None:
             db.session.query(Provider).filter(
                 Provider.tenant_id == tenant_id,
                 Provider.provider_name == model_instance.provider,
@@ -685,27 +609,28 @@ class LLMNode(BaseNode):
 
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
-        cls, graph_config: Mapping[str, Any], node_id: str, node_data: LLMNodeData
+        cls,
+        *,
+        graph_config: Mapping[str, Any],
+        node_id: str,
+        node_data: LLMNodeData,
     ) -> Mapping[str, Sequence[str]]:
-        """
-        Extract variable selector to variable mapping
-        :param graph_config: graph config
-        :param node_id: node id
-        :param node_data: node data
-        :return:
-        """
         prompt_template = node_data.prompt_template
 
         variable_selectors = []
-        if isinstance(prompt_template, list):
+        if isinstance(prompt_template, list) and all(
+            isinstance(prompt, LLMNodeChatModelMessage) for prompt in prompt_template
+        ):
             for prompt in prompt_template:
                 if prompt.edition_type != "jinja2":
                     variable_template_parser = VariableTemplateParser(template=prompt.text)
                     variable_selectors.extend(variable_template_parser.extract_variable_selectors())
-        else:
+        elif isinstance(prompt_template, LLMNodeCompletionModelPromptTemplate):
             if prompt_template.edition_type != "jinja2":
                 variable_template_parser = VariableTemplateParser(template=prompt_template.text)
                 variable_selectors = variable_template_parser.extract_variable_selectors()
+        else:
+            raise ValueError(f"Invalid prompt template type: {type(prompt_template)}")
 
         variable_mapping = {}
         for variable_selector in variable_selectors:
@@ -750,11 +675,6 @@ class LLMNode(BaseNode):
 
     @classmethod
     def get_default_config(cls, filters: Optional[dict] = None) -> dict:
-        """
-        Get default config of node.
-        :param filters: filter by node config parameters.
-        :return:
-        """
         return {
             "type": "llm",
             "config": {

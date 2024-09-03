@@ -1,13 +1,14 @@
 from collections.abc import Sequence
-from typing import Optional, Union
+from typing import Optional
 
 from core.app.entities.app_invoke_entities import ModelConfigWithCredentialsEntity
 from core.file.file_obj import File
 from core.helper.code_executor.jinja2.jinja2_formatter import Jinja2Formatter
 from core.memory.token_buffer_memory import TokenBufferMemory
-from core.model_runtime.entities.message_entities import (
+from core.model_runtime.entities import (
     AssistantPromptMessage,
     PromptMessage,
+    PromptMessageContent,
     PromptMessageRole,
     SystemPromptMessage,
     TextPromptMessageContent,
@@ -15,7 +16,6 @@ from core.model_runtime.entities.message_entities import (
 )
 from core.prompt.entities.advanced_prompt_entities import ChatModelMessage, CompletionModelPromptTemplate, MemoryConfig
 from core.prompt.prompt_transform import PromptTransform
-from core.prompt.simple_prompt_transform import ModelMode
 from core.prompt.utils.prompt_template_parser import PromptTemplateParser
 
 
@@ -26,8 +26,8 @@ class AdvancedPromptTransform(PromptTransform):
     def __init__(self, with_variable_tmpl: bool = False) -> None:
         self.with_variable_tmpl = with_variable_tmpl
 
-    def get_prompt(self, prompt_template: Union[list[ChatModelMessage], CompletionModelPromptTemplate],
-                   inputs: dict,
+    def get_prompt(self, *, prompt_template: Sequence[ChatModelMessage] | CompletionModelPromptTemplate,
+                   inputs: dict[str, str],
                    query: str,
                    files: Sequence[File],
                    context: Optional[str],
@@ -35,12 +35,9 @@ class AdvancedPromptTransform(PromptTransform):
                    memory: Optional[TokenBufferMemory],
                    model_config: ModelConfigWithCredentialsEntity,
                    query_prompt_template: Optional[str] = None) -> list[PromptMessage]:
-        inputs = {key: str(value) for key, value in inputs.items()}
-
         prompt_messages = []
 
-        model_mode = ModelMode.value_of(model_config.mode)
-        if model_mode == ModelMode.COMPLETION:
+        if isinstance(prompt_template, CompletionModelPromptTemplate):
             prompt_messages = self._get_completion_model_prompt_messages(
                 prompt_template=prompt_template,
                 inputs=inputs,
@@ -51,7 +48,7 @@ class AdvancedPromptTransform(PromptTransform):
                 memory=memory,
                 model_config=model_config
             )
-        elif model_mode == ModelMode.CHAT:
+        elif isinstance(prompt_template, list) and all(isinstance(item, ChatModelMessage) for item in prompt_template):
             prompt_messages = self._get_chat_model_prompt_messages(
                 prompt_template=prompt_template,
                 inputs=inputs,
@@ -113,7 +110,8 @@ class AdvancedPromptTransform(PromptTransform):
             prompt = Jinja2Formatter.format(prompt, prompt_inputs)
 
         if files:
-            prompt_message_contents = [TextPromptMessageContent(data=prompt)]
+            prompt_message_contents: list[PromptMessageContent] = []
+            prompt_message_contents.append(TextPromptMessageContent(data=prompt) )
             for file in files:
                 prompt_message_contents.append(file.prompt_message_content)
 
@@ -185,7 +183,8 @@ class AdvancedPromptTransform(PromptTransform):
             prompt_messages = self._append_chat_histories(memory, memory_config, prompt_messages, model_config)
 
             if files:
-                prompt_message_contents = [TextPromptMessageContent(data=query)]
+                prompt_message_contents: list[PromptMessageContent] = []
+                prompt_message_contents.append(TextPromptMessageContent(data=query))
                 for file in files:
                     prompt_message_contents.append(file.prompt_message_content)
 

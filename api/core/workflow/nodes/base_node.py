@@ -91,6 +91,7 @@ class BaseNode(ABC):
     @classmethod
     def _extract_variable_selector_to_variable_mapping(
         cls,
+        *,
         graph_config: Mapping[str, Any],
         node_id: str,
         node_data: BaseNodeData
